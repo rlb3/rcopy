@@ -39,7 +39,7 @@ sub rcopy {
     }
 }
 
-sub globrcopy {
+sub glob_rcopy {
     my ( $src, $dst ) = @_;
     my @src = glob($src);
     my $back_level = 0;
