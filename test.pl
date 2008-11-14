@@ -2,18 +2,21 @@
 
 use strict;
 use warnings;
+use File::Copy;
 use File::Spec;
 use Cwd;
 
 my $dst = 'dst';
-my $src = 'src';
+my $src = '/etc';
 
-globrcopy( "$src/dir1", $dst );
+glob_rcopy( "$src/pass*", $dst );
 
 sub rcopy {
     my ( $src, $dst, $back_level ) = @_;
 
     if ( !-e $dst ) {
+
+        # This would need to use mkdir -p or something like it
         mkdir( $dst, 0700 );
     }
     elsif ( -f $dst ) {
@@ -31,17 +34,19 @@ sub rcopy {
         my $to = File::Spec->catfile( Cwd::abs_path($dst), @src[ $src_level .. $#src ] );
 
         if ( -d $from ) {
+            # This would need to copy the old permissions
             mkdir( $to, 0700 );
         }
         elsif ( -f $from ) {
-            system( 'cp', $from, $to );
+            # This would need to copy the old permissions as well
+            File::Copy::copy( $from, $to );
         }
     }
 }
 
 sub glob_rcopy {
     my ( $src, $dst ) = @_;
-    my @src = glob($src);
+    my @src        = glob($src);
     my $back_level = 0;
     foreach my $file (@src) {
         $back_level++ if -d Cwd::abs_path($file);
