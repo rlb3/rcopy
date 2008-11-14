@@ -2,53 +2,70 @@
 
 use strict;
 use warnings;
-
-use lib 'lib';
-use Dir;
-use Utils;
 use Data::Dumper;
-
+use File::Spec;
+use Cwd;
 
 my $dst = 'dst';
 my $src = 'src';
 
-globrcopy("$src/dir1*", $dst);
-
-
-#rcopy($src, $dst);
+globrcopy( "$src/dir1", $dst );
 
 sub rcopy {
-    my ($src, $dst) = @_;
+    my ( $src, $dst, $back_level ) = @_;
 
-    if (!-e $dst) {
-        mkdir ($dst, 0700);
+    if ( !-e $dst ) {
+        mkdir( $dst, 0700 );
     }
-    elsif (-f $dst) {
+    elsif ( -f $dst ) {
         die "Destination cannot be a file\n";
     }
 
-    my $it = Dir::walk($src);
+    my $iter = walk_dir($src);
+    while ( my $from = $iter->() ) {
 
-    while ( my $file = $it->() ) {
-        my $newfile = $file;
+        $from = Cwd::abs_path($from);
+        my @src       = File::Spec->splitdir( Cwd::abs_path($src) );
+        my $src_level = @src;
+        $src_level-- if $back_level;
+        @src = File::Spec->splitdir($from);
+        my $to = File::Spec->catfile( Cwd::abs_path($dst), @src[ $src_level .. $#src ] );
 
-        if ( -d $file ) {
-            my $dir = (split('/', $newfile))[-1] . "\n";
-            print $dir . "\n";
-            mkdir( "$dst/$dir", 0700 );
+        if ( -d $from ) {
+            mkdir( $to, 0700 );
         }
-        elsif ( -f $file ) {
-            system( 'cp', $file, $newfile );
+        elsif ( -f $from ) {
+            system( 'cp', $from, $to );
         }
-
     }
 }
 
 sub globrcopy {
-    my ($src, $dst) = @_;
+    my ( $src, $dst ) = @_;
     my @src = glob($src);
-    print Dumper \@src;
+    my $back_level = 0;
     foreach my $file (@src) {
-        rcopy($file, $dst);
+        $back_level++ if -d Cwd::abs_path($file);
+        rcopy( $file, $dst, $back_level );
     }
 }
+
+sub walk_dir {
+    my @queue = @_;
+    return sub {
+        if (@queue) {
+            my $file = shift @queue;
+            if ( -d $file ) {
+                if ( opendir my $dh, $file ) {
+                    my @newfiles = grep { $_ ne "." && $_ ne ".." } readdir $dh;
+                    push @queue, map "$file/$_", @newfiles;
+                }
+            }
+            return $file;
+        }
+        else {
+            return;
+        }
+    };
+}
+
