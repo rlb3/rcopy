@@ -2,14 +2,14 @@
 
 use strict;
 use warnings;
-use File::Copy;
-use File::Spec;
-use Cwd;
+use File::Copy ();
+use File::Spec ();
+use Cwd        ();
 
 my $dst = 'dst';
-my $src = '/etc';
+my $src = 'src';
 
-glob_rcopy( "$src/pass*", $dst );
+rcopy( $src, $dst );
 
 sub rcopy {
     my ( $src, $dst, $back_level ) = @_;
@@ -17,7 +17,7 @@ sub rcopy {
     if ( !-e $dst ) {
 
         # This would need to use mkdir -p or something like it
-        mkdir( $dst, 0700 );
+        mkdir( $dst, 0755 );
     }
     elsif ( -f $dst ) {
         die "Destination cannot be a file\n";
@@ -35,11 +35,13 @@ sub rcopy {
 
         if ( -d $from ) {
             # This would need to copy the old permissions
-            mkdir( $to, 0700 );
+            mkdir( $to, 0755 );
+            chmod(mode($from), $to);
         }
         elsif ( -f $from ) {
             # This would need to copy the old permissions as well
             File::Copy::copy( $from, $to );
+            chmod(mode($from), $to);
         }
     }
 }
@@ -73,3 +75,7 @@ sub walk_dir {
     };
 }
 
+sub mode {
+    my ($file) = @_;
+    return oct(sprintf "%04o", ((stat($file))[2]) & 07777);
+}
