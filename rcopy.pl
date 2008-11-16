@@ -1,4 +1,4 @@
-#!usr/bin/perl
+#!/usr/bin/perl
 
 use strict;
 use warnings;
@@ -7,16 +7,26 @@ use File::Spec ();
 use File::Path ();
 use Cwd        ();
 
-my $dst = 'dst';
-my $src = 'src';
+my $src = shift;
+my $dst = shift;
 
-rcopy( $src, $dst );
+unless ($dst && $src) {
+    usage();
+    exit;
+}
+
+if (-d $src) {
+    rcopy( $src, $dst );
+}
+else {
+    glob_rcopy($src, $dst);
+}
 
 sub rcopy {
     my ( $src, $dst, $back_level ) = @_;
 
     if ( !-e $dst ) {
-        File::Path::mkpath($dst, { mode => 0755 });
+        File::Path::mkpath($dst, {mode => 0777});
     }
     elsif ( -f $dst ) {
         die "Destination cannot be a file\n";
@@ -32,11 +42,11 @@ sub rcopy {
         my $to = File::Spec->catfile( Cwd::abs_path($dst), @src[ $src_level .. $#src ] );
 
         if ( -d $from ) {
-            File::Path::mkpath($to, { mode => mode($from) });
+            File::Path::mkpath($to, { mode => mode($from)});
         }
         elsif ( -f $from ) {
             File::Copy::copy( $from, $to );
-            chmod(mode($from), $to);
+            chmod(mode($from), $to) if !-e $to;
         }
     }
 }
@@ -72,5 +82,12 @@ sub walk_dir {
 
 sub mode {
     my ($file) = @_;
-    return oct(sprintf "%04o", ((stat($file))[2]) & 07777);
+    return (stat($file))[2] & 0777;
+}
+
+sub usage {
+    my $prog = $0;
+    print <<EOF;
+$prog source destination
+EOF
 }
