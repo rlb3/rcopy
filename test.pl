@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use File::Copy ();
 use File::Spec ();
+use File::Path ();
 use Cwd        ();
 
 my $dst = 'dst';
@@ -15,9 +16,7 @@ sub rcopy {
     my ( $src, $dst, $back_level ) = @_;
 
     if ( !-e $dst ) {
-
-        # This would need to use mkdir -p or something like it
-        mkdir( $dst, 0755 );
+        File::Path::mkpath($dst, { mode => 0755 });
     }
     elsif ( -f $dst ) {
         die "Destination cannot be a file\n";
@@ -25,8 +24,7 @@ sub rcopy {
 
     my $iter = walk_dir($src);
     while ( my $from = $iter->() ) {
-
-        $from = Cwd::abs_path($from);
+        $from         = Cwd::abs_path($from);
         my @src       = File::Spec->splitdir( Cwd::abs_path($src) );
         my $src_level = @src;
         $src_level-- if $back_level;
@@ -34,12 +32,9 @@ sub rcopy {
         my $to = File::Spec->catfile( Cwd::abs_path($dst), @src[ $src_level .. $#src ] );
 
         if ( -d $from ) {
-            # This would need to copy the old permissions
-            mkdir( $to, 0755 );
-            chmod(mode($from), $to);
+            File::Path::mkpath($to, { mode => mode($from) });
         }
         elsif ( -f $from ) {
-            # This would need to copy the old permissions as well
             File::Copy::copy( $from, $to );
             chmod(mode($from), $to);
         }
