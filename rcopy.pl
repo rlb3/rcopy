@@ -26,7 +26,7 @@ sub rcopy {
     my ( $src, $dst, $back_level ) = @_;
 
     if ( !-e $dst ) {
-        File::Path::mkpath($dst, {mode => 0777});
+        File::Path::mkpath($to, 0, 0777);
     }
     elsif ( -f $dst ) {
         die "Destination cannot be a file\n";
@@ -42,7 +42,7 @@ sub rcopy {
         my $to = File::Spec->catfile( Cwd::abs_path($dst), @src[ $src_level .. $#src ] );
 
         if ( -d $from ) {
-            File::Path::mkpath($to, { mode => mode($from)});
+            File::Path::mkpath($to, 0, mode($from));
         }
         elsif ( -f $from ) {
             File::Copy::copy( $from, $to );
